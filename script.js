@@ -32,6 +32,8 @@
   const bannerEl = document.getElementById("banner");
   const randomUtils = window.SnakeRandom || {};
   const gridUtils = window.SnakeGrid || {};
+  const ruleUtils = window.SnakeRules || {};
+  const renderUtils = window.SnakeRender || {};
 
   // --------------------------- Config ---------------------------
   const GRID = 20;
@@ -121,6 +123,8 @@
   let gameTimer = null;
 
   let eatPulseUntil = 0;
+  let rules = null;
+  let renderer = null;
 
   // --------------------------- Audio ---------------------------
   let audioCtx = null;
@@ -263,6 +267,9 @@
   }
 
   function cellEq(a, b) {
+    if (rules && typeof rules.cellEq === "function") {
+      return rules.cellEq(a, b);
+    }
     return a.x === b.x && a.y === b.y;
   }
 
@@ -278,6 +285,9 @@
   }
 
   function manhattan(a, b) {
+    if (rules && typeof rules.manhattan === "function") {
+      return rules.manhattan(a, b);
+    }
     return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
   }
 
@@ -304,6 +314,10 @@
   }
 
   function freeNeighborsCount(cell, obstacleSource) {
+    if (rules && typeof rules.freeNeighborsCount === "function") {
+      return rules.freeNeighborsCount(cell, snake, obstacleSource, food);
+    }
+
     const dirs = [
       { x: 1, y: 0 },
       { x: -1, y: 0 },
@@ -322,6 +336,10 @@
   }
 
   function hasPath(head, target, obstacleSource) {
+    if (rules && typeof rules.hasPath === "function") {
+      return rules.hasPath(head, target, snake, obstacleSource);
+    }
+
     const q = [head];
     const seen = new Set([`${head.x},${head.y}`]);
 
@@ -466,6 +484,10 @@
   }
 
   function obstaclePatternForLevel(index) {
+    if (rules && typeof rules.obstaclePatternForLevel === "function") {
+      return rules.obstaclePatternForLevel(level, index, rng);
+    }
+
     if (level < 5) {
       return { axis: rng() < 0.5 ? "h" : "v", dir: rng() < 0.5 ? -1 : 1 };
     }
@@ -612,6 +634,9 @@
   }
 
   function isReverse(a, b) {
+    if (rules && typeof rules.isReverse === "function") {
+      return rules.isReverse(a, b);
+    }
     return a.x === -b.x && a.y === -b.y;
   }
 
@@ -862,86 +887,27 @@
   }
 
   // --------------------------- Rendering ---------------------------
-  function drawGrid() {
-    ctx.strokeStyle = "#1f3446";
-    ctx.lineWidth = 1;
-
-    for (let i = 0; i <= GRID; i += 1) {
-      const p = i * CELL;
-      ctx.beginPath();
-      ctx.moveTo(p, 0);
-      ctx.lineTo(p, canvas.height);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(0, p);
-      ctx.lineTo(canvas.width, p);
-      ctx.stroke();
-    }
-  }
-
-  function drawCell(cell, color, pad = 2) {
-    ctx.fillStyle = color;
-    ctx.fillRect(cell.x * CELL + pad, cell.y * CELL + pad, CELL - pad * 2, CELL - pad * 2);
-  }
-
   function draw(now) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#11202f";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    drawGrid();
-
-    // Grace period overlays for pending obstacle adds.
-    if (pendingObstacleAdds.length > 0) {
-      const remain = Math.max(0, levelObstacleActivateAt - now);
-      const alpha = 0.2 + 0.35 * (remain / LEVEL_OBSTACLE_GRACE_MS);
-      pendingObstacleAdds.forEach((o) => drawCell(o, `rgba(255, 209, 102, ${alpha.toFixed(3)})`, 5));
+    if (!renderer || typeof renderer.draw !== "function") {
+      return;
     }
 
-    // Warning flash cells for moving obstacles.
-    warningCells.forEach((c) => drawCell(c, "rgba(255, 209, 102, 0.8)", 6));
-
-    // Obstacles
-    obstacles.forEach((o) => drawCell(o, "#5f7a8f"));
-
-    // Food and bonus food.
-    if (food) {
-      drawCell(food, "#ff6b6b");
-    }
-    if (bonusFood) {
-      drawCell(bonusFood.cell, "#ffd166", 1);
-    }
-
-    // Snake with subtle eat pulse.
-    const pulse = now < eatPulseUntil ? 1 : 0;
-    snake.forEach((seg, i) => {
-      if (i === 0) {
-        drawCell(seg, pulse ? "#48f4e6" : "#20d6c7", pulse ? 1 : 2);
-      } else {
-        drawCell(seg, "#1fc58d", 2);
-      }
+    renderer.draw({
+      now,
+      snake,
+      food,
+      bonusFood,
+      obstacles,
+      warningCells,
+      pendingObstacleAdds,
+      levelObstacleActivateAt,
+      levelObstacleGraceMs: LEVEL_OBSTACLE_GRACE_MS,
+      eatPulseUntil,
+      started,
+      gameOver,
+      paused,
+      running,
     });
-
-    if (!started && !gameOver) {
-      ctx.fillStyle = "rgba(0,0,0,0.28)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#e8f4ff";
-      ctx.textAlign = "center";
-      ctx.font = "bold 22px Trebuchet MS";
-      ctx.fillText("Press Start", canvas.width / 2, canvas.height / 2 - 4);
-      ctx.font = "16px Trebuchet MS";
-      ctx.fillText("or use arrow keys / WASD", canvas.width / 2, canvas.height / 2 + 24);
-    }
-
-    if (paused && running) {
-      ctx.fillStyle = "rgba(0,0,0,0.35)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#ffd166";
-      ctx.textAlign = "center";
-      ctx.font = "bold 30px Trebuchet MS";
-      ctx.fillText("Paused", canvas.width / 2, canvas.height / 2);
-    }
   }
 
   // --------------------------- Setup + Reset ---------------------------
@@ -1128,6 +1094,22 @@
   }
 
   // --------------------------- Boot ---------------------------
+  if (typeof ruleUtils.createRules === "function") {
+    rules = ruleUtils.createRules({
+      gridSize: GRID,
+      wrapCell,
+    });
+  }
+
+  if (typeof renderUtils.createRenderer === "function") {
+    renderer = renderUtils.createRenderer({
+      ctx,
+      canvas,
+      grid: GRID,
+      cell: CELL,
+    });
+  }
+
   runSelfChecks();
   initState();
 })();
