@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Classic Snake</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --border: #334155;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 20%, #1e293b 0%, var(--bg) 60%);
+    }
+
+    .game-shell {
+      width: min(92vw, 520px);
+      background: rgba(17, 24, 39, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    #score {
+      font-weight: 700;
+    }
+
+    #state {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    #game {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      display: block;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .help {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="game-shell">
+    <div class="header">
+      <div>Score: <span id="score">0</span></div>
+      <div id="state">Press an arrow key or WASD to start</div>
+    </div>
+
+    <canvas id="game" width="400" height="400"></canvas>
+
+    <div class="help">Controls: Arrow keys/WASD, R restart, 1 Easy, 2 Normal, 3 Hard (moving obstacles). Walls wrap.</div>
+  </main>
+
+  <script src="./script.js"></script>
+</body>
+</html>
