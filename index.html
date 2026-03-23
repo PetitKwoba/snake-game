@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Classic Snake</title>
+  <title>Snake Arena</title>
   <style>
     :root {
-      --bg: #0f172a;
-      --panel: #111827;
-      --border: #334155;
-      --text: #e5e7eb;
-      --muted: #94a3b8;
+      --bg: #081019;
+      --panel: #11202f;
+      --border: #2f4f68;
+      --text: #e8f4ff;
+      --muted: #9fc3de;
+      --accent: #20d6c7;
+      --danger: #ff6b6b;
+      --warn: #ffd166;
     }
 
     * {
@@ -22,33 +25,103 @@
       min-height: 100vh;
       display: grid;
       place-items: center;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       color: var(--text);
-      background: radial-gradient(circle at 20% 20%, #1e293b 0%, var(--bg) 60%);
+      background:
+        radial-gradient(1300px 600px at 5% 5%, #17334a 0%, transparent 60%),
+        radial-gradient(900px 500px at 95% 100%, #123b3a 0%, transparent 60%),
+        var(--bg);
     }
 
     .game-shell {
-      width: min(92vw, 520px);
-      background: rgba(17, 24, 39, 0.9);
+      width: min(96vw, 740px);
+      background: rgba(17, 32, 47, 0.92);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
     }
 
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .title {
+      margin: 0 0 8px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 1.05rem;
+      color: var(--accent);
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
       margin-bottom: 10px;
     }
 
-    #score {
+    .tile {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(9, 17, 25, 0.5);
+      padding: 8px;
+      font-size: 0.86rem;
+      line-height: 1.25;
+    }
+
+    .tile strong {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .controls-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .control-group {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(7, 14, 21, 0.45);
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .control-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    select,
+    button,
+    input {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0b1824;
+      color: var(--text);
+      padding: 6px 8px;
+      font-size: 0.85rem;
+    }
+
+    button.primary {
+      background: #0f3d4b;
+      border-color: #14627a;
       font-weight: 700;
     }
 
-    #state {
-      color: var(--muted);
-      font-size: 0.9rem;
+    button:active {
+      transform: translateY(1px);
     }
 
     #game {
@@ -56,30 +129,144 @@
       aspect-ratio: 1 / 1;
       display: block;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 12px;
       background: var(--panel);
     }
 
+    .board-wrap {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    .board-wrap.shake {
+      animation: shake 220ms linear;
+    }
+
+    @keyframes shake {
+      0% { transform: translate(0, 0); }
+      25% { transform: translate(4px, -3px); }
+      50% { transform: translate(-3px, 3px); }
+      75% { transform: translate(2px, -2px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    #banner {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--warn);
+      pointer-events: none;
+      opacity: 0;
+      text-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      transition: opacity 180ms ease;
+    }
+
+    #banner.show {
+      opacity: 1;
+    }
+
     .help {
-      margin-top: 8px;
+      margin-top: 10px;
       font-size: 0.85rem;
       color: var(--muted);
       text-align: center;
+    }
+
+    .mobile-pad {
+      margin-top: 10px;
+      display: none;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mobile-pad button {
+      min-width: 54px;
+      min-height: 48px;
+      font-size: 1.1rem;
+    }
+
+    @media (max-width: 780px) {
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .controls-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .mobile-pad {
+        display: flex;
+      }
     }
   </style>
 </head>
 <body>
   <main class="game-shell">
-    <div class="header">
-      <div>Score: <span id="score">0</span></div>
-      <div id="state">Press an arrow key or WASD to start</div>
+    <h1 class="title">Snake Arena</h1>
+
+    <section class="hud">
+      <div class="tile"><strong>Score</strong><span id="score">0</span></div>
+      <div class="tile"><strong>Best</strong><span id="best">0</span></div>
+      <div class="tile"><strong>Mode</strong><span id="modeText">survival</span></div>
+      <div class="tile"><strong>Status</strong><span id="state">Ready</span></div>
+      <div class="tile"><strong>Level</strong><span id="levelText">0</span></div>
+      <div class="tile"><strong>Speed</strong><span id="speedText">120ms</span></div>
+      <div class="tile"><strong>Combo</strong><span id="comboText">x1</span></div>
+      <div class="tile"><strong>Time</strong><span id="timerText">--</span></div>
+    </section>
+
+    <section class="controls-panel">
+      <div class="control-group">
+        <label>Mode and Difficulty</label>
+        <div class="control-row">
+          <select id="modeSelect">
+            <option value="classic">Classic</option>
+            <option value="survival" selected>Survival</option>
+            <option value="timeAttack">Time Attack</option>
+          </select>
+          <select id="difficultySelect">
+            <option value="easy">Easy</option>
+            <option value="normal" selected>Normal</option>
+            <option value="hard">Hard</option>
+          </select>
+          <button id="startBtn" class="primary">Start</button>
+          <button id="restartBtn">Restart</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Audio and Seed</label>
+        <div class="control-row">
+          <button id="sfxBtn">SFX: On</button>
+          <button id="musicBtn">Music: Off</button>
+          <input id="volume" type="range" min="0" max="1" step="0.05" value="0.22" />
+          <input id="seedInput" type="text" placeholder="seed (optional)" />
+        </div>
+      </div>
+    </section>
+
+    <div class="board-wrap" id="boardWrap">
+      <canvas id="game" width="520" height="520"></canvas>
+      <div id="banner">Level Up</div>
     </div>
 
-    <canvas id="game" width="400" height="400"></canvas>
+    <div class="mobile-pad">
+      <button data-dir="up">↑</button>
+      <button data-dir="left">←</button>
+      <button data-dir="down">↓</button>
+      <button data-dir="right">→</button>
+      <button id="pauseBtn">Pause</button>
+    </div>
 
-    <div class="help">Controls: Arrow keys/WASD, R restart, 1 Easy, 2 Normal, 3 Hard (moving obstacles). Walls wrap.</div>
+    <div class="help">Controls: Arrow keys/WASD, P pause, R restart. Walls wrap. Hard mode uses moving obstacles with warning flashes.</div>
   </main>
 
+  <script src="./src/random.js"></script>
+  <script src="./src/grid.js"></script>
   <script src="./script.js"></script>
 </body>
 </html>
